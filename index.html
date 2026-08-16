@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CrashGuessr</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css?v=1786893600" />
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">CrashGuessr</div>
+  <div class="hud">
+    <span id="roundLabel">Round 1 / 5</span>
+    <span id="scoreLabel">Score: 0</span>
+  </div>
+</header>
+
+<main id="game">
+  <section id="clipPane">
+    <div id="videoWrap">
+      <div id="ytFrame" hidden><div id="ytPlayerTarget"></div></div>
+      <div id="videoLoading" hidden>
+        <div class="spinner"></div>
+        <button id="tapPlayBtn" hidden>Tap to play</button>
+      </div>
+      <video id="fileVideo" hidden controls autoplay muted loop playsinline></video>
+      <div id="textClip" hidden class="text-clip"></div>
+    </div>
+    <div id="clipMeta"></div>
+  </section>
+
+  <section id="mapPane">
+    <div id="map"></div>
+    <div id="controls">
+      <button id="guessBtn" disabled>Place a pin to guess</button>
+      <button id="nextBtn" hidden>Next round →</button>
+    </div>
+  </section>
+</main>
+
+<div id="resultOverlay" hidden>
+  <div id="resultCard">
+    <h2 id="resultTitle"></h2>
+    <p id="resultDistance"></p>
+    <p id="resultPoints"></p>
+    <button id="resultNextBtn">Continue</button>
+  </div>
+</div>
+
+<div id="finalOverlay" hidden>
+  <div id="resultCard">
+    <h2 id="finalTitle">Final Score</h2>
+    <p id="finalScore"></p>
+    <div id="shareGrid"></div>
+    <button id="copyResultBtn">Copy Result</button>
+    <p id="dailyNote"></p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="data.js?v=1786893600"></script>
+<script src="app.js?v=1786893600"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0e0f12; color: #eee; }
+
+#topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; background: #17181c; border-bottom: 1px solid #2a2b30;
+}
+.brand { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; color: #ff5c5c; }
+.hud { display: flex; gap: 20px; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+#game {
+  display: grid; grid-template-columns: 1fr 1fr;
+  height: calc(100vh - 46px);
+}
+
+#clipPane { position: relative; background: #000; display: flex; flex-direction: column; }
+#videoWrap { flex: 1; position: relative; overflow: hidden; }
+#fileVideo { width: 100%; height: 100%; object-fit: cover; border: 0; }
+#ytFrame {
+  position: absolute; top: 50%; left: 50%;
+  width: 140%; height: 140%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#ytPlayerTarget, #ytFrame iframe { width: 100%; height: 100%; border: 0; display: block; }
+#videoLoading {
+  position: absolute; inset: 0; z-index: 3;
+  background: #000; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+}
+.spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid #333; border-top-color: #ff5c5c;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#tapPlayBtn { padding: 10px 20px; }
+.text-clip {
+  height: 100%; display: flex; align-items: center; justify-content: center;
+  padding: 40px; text-align: center; font-size: 1.3rem; line-height: 1.5;
+  background: linear-gradient(135deg, #1a1c22, #26282f); color: #ccc;
+}
+#clipMeta { padding: 10px 16px; background: #111217; font-size: 0.85rem; color: #888; border-top: 1px solid #222; }
+
+#mapPane { position: relative; display: flex; flex-direction: column; }
+#map { flex: 1; }
+#controls {
+  padding: 12px; background: #17181c; display: flex; justify-content: center; gap: 10px;
+  border-top: 1px solid #2a2b30;
+}
+
+button {
+  background: #ff5c5c; color: #fff; border: none; padding: 10px 22px;
+  border-radius: 6px; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+button:hover:not(:disabled) { background: #ff7373; }
+button:disabled { background: #4a3636; color: #998; cursor: not-allowed; }
+
+#resultOverlay, #finalOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+#resultOverlay[hidden], #finalOverlay[hidden] { display: none; }
+#resultCard {
+  background: #1c1d22; padding: 30px 40px; border-radius: 12px; text-align: center;
+  border: 1px solid #333; min-width: 320px;
+}
+#resultCard h2 { margin-top: 0; color: #ff5c5c; }
+#resultCard p { font-size: 1.1rem; margin: 10px 0; }
+
+#shareGrid { font-size: 1.8rem; letter-spacing: 4px; margin: 14px 0; }
+#dailyNote { font-size: 0.85rem; color: #888; }
+
+@media (max-width: 800px) {
+  #game { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; height: auto; min-height: calc(100vh - 46px); }
+}
