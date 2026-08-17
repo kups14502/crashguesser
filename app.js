@@ -111,9 +111,11 @@
   let ytApiReady = false;
   let pendingVideoId = null;
   let stallTimer = null;
+  let apiLoadTimer = null;
 
   window.onYouTubeIframeAPIReady = function () {
     ytApiReady = true;
+    clearTimeout(apiLoadTimer);
     if (pendingVideoId) {
       const id = pendingVideoId;
       pendingVideoId = null;
@@ -124,8 +126,16 @@
   function playYoutube(id) {
     els.videoLoading.hidden = false;
     els.tapPlayBtn.hidden = true;
+    els.tapPlayBtn.textContent = 'Tap to play';
     if (!ytApiReady || typeof YT === 'undefined' || !YT.Player) {
       pendingVideoId = id;
+      // If the YouTube iframe API script itself is blocked or never loads
+      // (ad blockers, restrictive networks), onYouTubeIframeAPIReady never
+      // fires and we'd otherwise spin forever with no way out.
+      clearTimeout(apiLoadTimer);
+      apiLoadTimer = setTimeout(() => {
+        if (!ytApiReady) showRetry();
+      }, 6000);
       return;
     }
     if (!ytPlayer) {
@@ -138,6 +148,7 @@
         events: {
           onReady: (e) => { e.target.mute(); e.target.playVideo(); armStallWatch(); },
           onStateChange: onYtStateChange,
+          onError: onYtError,
         },
       });
     } else {
@@ -149,7 +160,12 @@
 
   function armStallWatch() {
     clearTimeout(stallTimer);
-    stallTimer = setTimeout(() => { els.tapPlayBtn.hidden = false; }, 4000);
+    stallTimer = setTimeout(showRetry, 4000);
+  }
+
+  function showRetry() {
+    els.videoLoading.hidden = false;
+    els.tapPlayBtn.hidden = false;
   }
 
   function onYtStateChange(e) {
@@ -166,9 +182,20 @@
     }
   }
 
+  function onYtError() {
+    clearTimeout(stallTimer);
+    els.tapPlayBtn.textContent = 'Retry';
+    showRetry();
+  }
+
   els.tapPlayBtn.addEventListener('click', () => {
-    if (ytPlayer) { ytPlayer.mute(); ytPlayer.playVideo(); }
-    armStallWatch();
+    if (ytPlayer && ytApiReady) {
+      ytPlayer.mute();
+      ytPlayer.playVideo();
+      armStallWatch();
+    } else {
+      playYoutube(rounds[roundIndex].youtubeId);
+    }
   });
 
   function placeGuessMarker(latlng) {
