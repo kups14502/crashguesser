@@ -1,4 +1,9 @@
 * { box-sizing: border-box; }
+
+/* The UA stylesheet's [hidden] { display: none } loses to any author display
+   rule (e.g. #videoLoading's display:flex), which silently defeats every
+   el.hidden = true in app.js. Keep this above the layout rules below. */
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0e0f12; color: #eee; }
 
 #topbar {
@@ -8,17 +13,23 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .brand { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; color: #ff5c5c; }
 .hud { display: flex; gap: 20px; font-variant-numeric: tabular-nums; font-weight: 600; }
 
+/* Clip on top, map underneath, on every screen size. Side-by-side wastes the
+   height a dashcam clip needs and squeezes the map into a tall thin strip.
+   minmax(0, ...) so the panes can shrink instead of overflowing the viewport. */
 #game {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
   height: calc(100vh - 46px);
 }
 
-#clipPane { position: relative; background: #000; display: flex; flex-direction: column; }
-#videoWrap { flex: 1; position: relative; overflow: hidden; }
-#fileVideo { width: 100%; height: 100%; object-fit: cover; border: 0; }
+#clipPane { position: relative; background: #000; display: flex; flex-direction: column; min-height: 0; }
+#videoWrap { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+#fileVideo { width: 100%; height: 100%; object-fit: contain; border: 0; }
+/* Size/offset are set by layoutClip() in app.js: the pane's aspect ratio is
+   arbitrary, so the fit has to be computed, and per-round zoom/shift is what
+   pushes news-station chyrons and logo bugs outside the pane. */
 #ytFrame {
   position: absolute; top: 50%; left: 50%;
-  width: 140%; height: 140%;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -73,5 +84,5 @@ button:disabled { background: #4a3636; color: #998; cursor: not-allowed; }
 #dailyNote { font-size: 0.85rem; color: #888; }
 
 @media (max-width: 800px) {
-  #game { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; height: auto; min-height: calc(100vh - 46px); }
+  #game { grid-template-rows: 45vh minmax(0, 1fr); height: auto; min-height: calc(100vh - 46px); }
 }
