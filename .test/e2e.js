@@ -1,4 +1,4 @@
-// End-to-end: play all 5 rounds, assert each clip actually reaches playback
+// End-to-end: play a full day of rounds, assert each clip actually reaches playback
 // (spinner gone, media time advancing), that round advance works, and that
 // none of the answer-leak guards in app.js have regressed.
 //
@@ -191,18 +191,28 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'domcontentloaded' });
 
+  // Rounds per day is a product decision that changes; read it off the page
+  // rather than hardcoding, so changing it is not also a test edit.
+  const firstLabel = await page.textContent('#roundLabel');
+  const ROUND_COUNT = Number((/\/\s*(\d+)/.exec(firstLabel) || [])[1]);
+  if (!ROUND_COUNT) {
+    console.log(`  FAIL  could not read round count from label "${firstLabel}"`);
+    process.exit(1);
+  }
+  console.log(`rounds per day: ${ROUND_COUNT}`);
+
   const playedIds = [];
   // Events before this index belong to earlier rounds. Advanced at the end of
   // each iteration rather than reset at the start, so round 1 keeps the states
   // it emitted during initial page load.
   let mark = { s: 0, c: 0 };
 
-  for (let round = 1; round <= 5; round++) {
+  for (let round = 1; round <= ROUND_COUNT; round++) {
     console.log(`\n--- Round ${round} ---`);
 
     const label = await page.textContent('#roundLabel');
-    if (label.trim() === `Round ${round} / 5`) ok(`label "${label.trim()}"`);
-    else bad(`label expected "Round ${round} / 5", got "${label.trim()}"`);
+    if (label.trim() === `Round ${round} / ${ROUND_COUNT}`) ok(`label "${label.trim()}"`);
+    else bad(`label expected "Round ${round} / ${ROUND_COUNT}", got "${label.trim()}"`);
 
     // The clip must become visible and the spinner must go away.
     mediaTime.v = 0;   // each round loads a fresh video; cmt restarts near 0
@@ -392,19 +402,26 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
     const f = document.getElementById('finalOverlay');
     return f && !f.hidden && getComputedStyle(f).display !== 'none';
   });
-  if (finalShown) ok('final overlay shown after 5 rounds');
-  else bad('final overlay missing after 5 rounds');
+  if (finalShown) ok(`final overlay shown after ${ROUND_COUNT} rounds`);
+  else bad(`final overlay missing after ${ROUND_COUNT} rounds`);
 
   const share = await page.textContent('#shareGrid');
-  if (share && share.trim().length >= 5) ok(`share grid rendered: ${share.trim()}`);
-  else bad(`share grid empty/short: "${share}"`);
+  // Count code points, not UTF-16 units: the score emoji are astral (🟩 is a
+  // surrogate pair, ⬛ is not), so .length does not equal one-per-round.
+  const tiles = share ? [...share.trim()].length : 0;
+  if (tiles === ROUND_COUNT) ok(`share grid rendered ${tiles} tiles: ${share.trim()}`);
+  else bad(`share grid has ${tiles} tiles, expected ${ROUND_COUNT}: "${share}"`);
 
   // Every round must have served a different clip. The iframe's src attribute
   // keeps naming the first video forever (loadVideoById swaps the video without
   // touching the src), so this reads the id from the player itself.
   const unique = new Set(playedIds);
-  if (playedIds.length === 5 && unique.size === 5) ok(`5 distinct clips played: ${[...unique].join(', ')}`);
-  else bad(`expected 5 distinct clips, got ${playedIds.length} ids with ${unique.size} unique: ${playedIds.join(', ')}`);
+  if (playedIds.length === ROUND_COUNT && unique.size === ROUND_COUNT) {
+    ok(`${ROUND_COUNT} distinct clips played: ${[...unique].join(', ')}`);
+  } else {
+    bad(`expected ${ROUND_COUNT} distinct clips, got ${playedIds.length} ids ` +
+        `with ${unique.size} unique: ${playedIds.join(', ')}`);
+  }
 
   const known = [...unique].filter((id) => !BY_ID.has(id));
   if (!known.length) ok('all played clips are from data.js');

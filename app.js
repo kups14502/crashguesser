@@ -2,7 +2,14 @@
   const MAX_POINTS = 5000;
   const SCALE_KM = 2000; // higher = more forgiving scoring curve
   const EPOCH_UTC = Date.UTC(2026, 7, 16); // CrashGuessr #1
-  const STORAGE_KEY = 'cg_daily_v1';
+  // Bumped from v1 when the day went from 5 rounds to 3: a stored v1 day holds
+  // up to 5 scores, which would put roundIndex past the end of a 3-round day
+  // and drop the player straight onto the final card.
+  const STORAGE_KEY = 'cg_daily_v2';
+  // Rounds served per day. Lower is a shorter sit-down AND stretches the clip
+  // pool further, which is the binding constraint: a day of play costs this
+  // many clips and clips are slow to source (see the sourcing notes in data.js).
+  const ROUNDS_PER_DAY = 3;
 
   // --- Answer-leak guards (see the block comment above playYoutube) ---
   // How long the black cover stays over the player after playback first starts.
@@ -29,7 +36,7 @@
   const TITLE_CHROME_PX = 76;
 
   const dayNumber = Math.floor((Date.now() - EPOCH_UTC) / 86400000) + 1;
-  const rounds = seededShuffle(ROUNDS.slice(), dayNumber);
+  const rounds = pickRounds(ROUNDS, dayNumber, ROUNDS_PER_DAY);
 
   let progress = loadProgress();
   let roundIndex = progress.points.length;
@@ -560,6 +567,34 @@
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+  }
+
+  // Pick a day's rounds so the pool is CONSUMED rather than permuted.
+  //
+  // This used to be seededShuffle(ROUNDS, dayNumber), which reshuffled the same
+  // clips every day: a player two days running saw the identical set in a new
+  // order and scored 5000 a round. Instead, treat the pool as a deck dealt from
+  // continuously. Day N takes the next `perDay` cards; when the deck runs out,
+  // the next cycle is shuffled with a new seed, so the second pass through the
+  // pool is not in the same order as the first.
+  //
+  // A day whose slice straddles a cycle boundary draws from two different decks
+  // and can offer the same clip twice, hence the identity check: the decks hold
+  // references into `all`, so `includes` compares the actual round objects.
+  function pickRounds(all, day, perDay) {
+    const take = Math.min(perDay, all.length);
+    const picks = [];
+    let idx = (day - 1) * take;
+    // Bounded rather than while(true): a permutation of the full pool appears
+    // every `all.length` steps, so a fresh clip is always close, but a bad
+    // pool (empty, duplicated entries) must not spin forever.
+    for (let guard = 0; picks.length < take && guard < all.length * 4; guard++) {
+      const deck = seededShuffle(all.slice(), Math.floor(idx / all.length) + 1);
+      const candidate = deck[idx % all.length];
+      idx++;
+      if (!picks.includes(candidate)) picks.push(candidate);
+    }
+    return picks;
   }
 
   function seededShuffle(arr, seed) {

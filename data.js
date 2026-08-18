@@ -47,6 +47,39 @@
 // Replacing the three flagged rounds with caption-free uploads is the open
 // work item here.
 //
+// ---------------------------------------------------------------------------
+// ADDING A CLIP
+//
+// The pool is the binding constraint on the whole game: app.js serves
+// ROUNDS_PER_DAY rounds and deals from this list without repeating, so a day of
+// play costs that many clips. Five clips is under two days of non-repeating
+// play. Tooling to grow it lives in .test/:
+//
+//   node find-clips.js search "<query>"   scrapes real YouTube listings, so an
+//   node find-clips.js channel <@handle>  id it prints provably exists. It
+//                                         down-ranks compilations and broadcast
+//                                         channels.
+//   node vet-clips.js <id> [id...]        confirms the id IS the video you
+//                                         think (reads title/channel off the
+//                                         player), that it embeds from the
+//                                         production origin, whether it has
+//                                         caption tracks, and writes
+//                                         screenshots across the clip.
+//
+// What the tools CANNOT decide, and what actually gates a clip:
+//   1. A real location. Every round needs a lat/lng, so the title, description
+//      or a news report has to pin the spot down. "10th Street and 9th Avenue"
+//      exists in dozens of towns: if the city is not certain, the clip is not
+//      usable, because a confidently wrong answer is worse than no round.
+//   2. Trim points. Watch it and find when the crash happens, then set
+//      start/end around it with margin (see the trim notes above).
+//   3. Burned-in graphics. Screenshots show these; station bugs and chyrons are
+//      part of the video's pixels and can only be cropped, never turned off.
+//
+// Prefer, in order: personal dashcam channels, dashcam-hardware channels
+// (BlackVue, Thinkware, VIOFO customer submissions), print outlets. Avoid TV
+// stations: every caption-bearing clip here came from one.
+//
 // These are REAL incidents, each confirmed by a news report naming the exact
 // intersection, paired with a standalone (non-compilation) YouTube upload of the
 // dashcam footage. lat/lng for Vaughan and DTLA come from a geocoded street address;
