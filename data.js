@@ -80,6 +80,16 @@
 // (BlackVue, Thinkware, VIOFO customer submissions), print outlets. Avoid TV
 // stations: every caption-bearing clip here came from one.
 //
+// Rejected candidates worth remembering, so they don't get re-found:
+//   NewYorkDashCam (whole channel) - burns "NEWYORK DASHCAM" into the bottom of
+//     every frame. The crop would probably clear it, but "probably" is not a
+//     standard to hold for the one thing this game must never reveal.
+//   Clips titled only "... in Michigan" or similar - a state is too coarse to
+//     place a pin honestly.
+//   "the intersection of 10th Street and 9th Avenue" (8eh57sxBfvU) - clean,
+//     short, embeddable, and genuinely unusable: that intersection exists in
+//     dozens of US towns and nothing in frame settles which one.
+//
 // These are REAL incidents, each confirmed by a news report naming the exact
 // intersection, paired with a standalone (non-compilation) YouTube upload of the
 // dashcam footage. lat/lng for Vaughan and DTLA come from a geocoded street address;
@@ -152,5 +162,35 @@ const ROUNDS = [
     aspect: 22 / 15,
     lat: 42.680, lng: -91.955,
     answer: "Near Oelwein, Iowa, USA (Highway 3 & W Ave, Fayette Co., approx.)"
+  },
+  {
+    // Thinkware customer submission, 46s total, but only the middle is footage:
+    // it opens on a "The following footage is submitted by a Thinkware F750
+    // user" title card (through ~8s) and closes on a THINKWARE logo card (up by
+    // 41s). Both trimmed off. Impact is at ~34s, so this window is the approach
+    // plus the crash and a couple of seconds of aftermath.
+    // Burned-in OSD along the bottom is camera model, voltage and date, no
+    // location, and the crop clears that band anyway.
+    // Coordinates are the New Orleans city centroid (geocoded), since the title
+    // gives the city but not the intersection. Fine at this scoring curve: a
+    // couple of km costs almost nothing.
+    youtubeId: "52BXL8ZFZgk",
+    start: 24, end: 36,
+    lat: 29.9561, lng: -90.0734,
+    answer: "New Orleans, Louisiana, USA (approx.)"
+  },
+  {
+    // Personal dashcam upload, 41s, no title card: footage from the first
+    // frame. Still driving normally at 3s, debris across the intersection by
+    // 24s, so the impact is somewhere between. The window is deliberately wide
+    // around that rather than tight, since the exact moment has not been
+    // pinned down; worth narrowing once someone watches it.
+    // "FlubbinEpic" channel watermark sits top-left and the VIOFO OSD bottom
+    // -right, neither naming a place, and both fall outside the crop.
+    // Geocoded to the St. Petersburg centroid; the title names the city only.
+    youtubeId: "My_--AivOJ0",
+    start: 5, end: 30,
+    lat: 27.7712, lng: -82.6340,
+    answer: "St. Petersburg, Florida, USA (approx.)"
   }
 ];

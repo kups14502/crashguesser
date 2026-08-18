@@ -172,6 +172,21 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
     }
   });
 
+  // CG_DAY runs a chosen puzzle day instead of today, so a newly added clip can
+  // be exercised before the rotation naturally deals it, and so any future day
+  // can be previewed. Only Date.now is shifted, by a constant, which is what
+  // app.js derives dayNumber from; elapsed-time maths inside the app and the
+  // player are unaffected by a fixed offset.
+  if (process.env.CG_DAY) {
+    await page.addInitScript((day) => {
+      const target = Date.UTC(2026, 7, 16) + (day - 1) * 86400000 + 12 * 3600000;
+      const realNow = Date.now.bind(Date);
+      const offset = target - realNow();
+      Date.now = () => realNow() + offset;
+    }, Number(process.env.CG_DAY));
+    console.log(`simulating puzzle day #${process.env.CG_DAY}`);
+  }
+
   // Serve the working-tree files under ORIGIN so the test exercises the real
   // deployed origin (embed permissions depend on it) against local edits.
   if (PAGE_URL.startsWith(ORIGIN)) {
