@@ -222,5 +222,15 @@ const ROUNDS = [
     start: 3.09, end: 35.51,
     lat: 32.2803, lng: -81.0726,
     answer: "Hardeeville, South Carolina, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-20. ViralHog upload:
+    // https://www.youtube.com/watch?v=dO9wThKbc_c. Place from the description: "Occurred on March
+    // 18, 2021 / Charlotte, North Carolina, USA". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "dO9wThKbc_c",
+    start: 3.65, end: 41.95,
+    lat: 35.2272, lng: -80.8431,
+    answer: "Charlotte, North Carolina, USA (approx.)"
   }
 ];
