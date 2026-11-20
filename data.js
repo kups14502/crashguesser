@@ -212,5 +212,15 @@ const ROUNDS = [
     start: 4, end: 46,
     lat: 39.8272, lng: -75.1236,
     answer: "Deptford, New Jersey, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-20. ViralHog upload:
+    // https://www.youtube.com/watch?v=FD1sacdeW8E. Place from the description: "Occurred on
+    // October 6, 2021 / Hardeeville, South Carolina, USA". The uploader's licensing line names the
+    // city; the pin is the city's center as the geocoder puts it.
+    youtubeId: "FD1sacdeW8E",
+    start: 3.09, end: 35.51,
+    lat: 32.2803, lng: -81.0726,
+    answer: "Hardeeville, South Carolina, USA (approx.)"
   }
 ];
