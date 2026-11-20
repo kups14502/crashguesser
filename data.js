@@ -192,5 +192,15 @@ const ROUNDS = [
     start: 5, end: 30,
     lat: 27.7712, lng: -82.6340,
     answer: "St. Petersburg, Florida, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-19. ViralHog upload:
+    // https://www.youtube.com/watch?v=1gvoPdBDwTM. Place from the description: "Occurred on June
+    // 13, 2020 / Sheffield, England, UK". The uploader's licensing line names the city; the pin is
+    // the city's center as the geocoder puts it.
+    youtubeId: "1gvoPdBDwTM",
+    start: 1.08, end: 12.42,
+    lat: 53.3807, lng: -1.4702,
+    answer: "Sheffield, England, UK (approx.)"
   }
 ];
