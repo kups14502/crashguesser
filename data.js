@@ -202,5 +202,15 @@ const ROUNDS = [
     start: 1.08, end: 12.42,
     lat: 53.3807, lng: -1.4702,
     answer: "Sheffield, England, UK (approx.)"
+  },
+  {
+    // Added after review on 2026-11-20. ViralHog upload:
+    // https://www.youtube.com/watch?v=1dJSfo8qKi4. Place from the description: "Occurred on April
+    // 11, 2020 / Deptford, New Jersey, USA". The uploader's licensing line names the city; the pin
+    // is the city's center as the geocoder puts it.
+    youtubeId: "1dJSfo8qKi4",
+    start: 4, end: 46,
+    lat: 39.8272, lng: -75.1236,
+    answer: "Deptford, New Jersey, USA (approx.)"
   }
 ];
