@@ -242,5 +242,15 @@ const ROUNDS = [
     start: 0.98, end: 11.22,
     lat: 35.146, lng: -90.0518,
     answer: "Memphis, Tennessee, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-21. ViralHog upload:
+    // https://www.youtube.com/watch?v=ZVMD2bydo70. Place from the description: "Occurred on May
+    // 12, 2017 / Orlando, Florida, USA". The uploader's licensing line names the city; the pin is
+    // the city's center as the geocoder puts it.
+    youtubeId: "ZVMD2bydo70",
+    start: 1.31, end: 15.09,
+    lat: 28.5421, lng: -81.379,
+    answer: "Orlando, Florida, USA (approx.)"
   }
 ];
