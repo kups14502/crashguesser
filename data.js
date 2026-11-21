@@ -232,5 +232,15 @@ const ROUNDS = [
     start: 3.65, end: 41.95,
     lat: 35.2272, lng: -80.8431,
     answer: "Charlotte, North Carolina, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-21. ViralHog upload:
+    // https://www.youtube.com/watch?v=E-E9ZBHaNVc. Place from the description: "Occurred on
+    // October 8, 2021 / Memphis, Tennessee, USA". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "E-E9ZBHaNVc",
+    start: 0.98, end: 11.22,
+    lat: 35.146, lng: -90.0518,
+    answer: "Memphis, Tennessee, USA (approx.)"
   }
 ];
