@@ -252,5 +252,15 @@ const ROUNDS = [
     start: 1.31, end: 15.09,
     lat: 28.5421, lng: -81.379,
     answer: "Orlando, Florida, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-21. ViralHog upload:
+    // https://www.youtube.com/watch?v=eWhfqoGXdOI. Place from the description: "Occurred on
+    // November 30, 2020 / Randolph, Massachusetts, USA". The uploader's licensing line names the
+    // city; the pin is the city's center as the geocoder puts it.
+    youtubeId: "eWhfqoGXdOI",
+    start: 0.91, end: 10.49,
+    lat: 42.1626, lng: -71.0413,
+    answer: "Randolph, Massachusetts, USA (approx.)"
   }
 ];
