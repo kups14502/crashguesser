@@ -272,5 +272,15 @@ const ROUNDS = [
     start: 0.84, end: 9.66,
     lat: 35.3739, lng: -119.0195,
     answer: "Bakersfield, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-22. ViralHog upload:
+    // https://www.youtube.com/watch?v=GnBeyVPhfig. Place from the description: "Occurred on June
+    // 24, 2021 / Los Angeles, California, USA". The uploader's licensing line names the city; the
+    // pin is the city's center as the geocoder puts it.
+    youtubeId: "GnBeyVPhfig",
+    start: 2.16, end: 24.84,
+    lat: 34.0537, lng: -118.2428,
+    answer: "Los Angeles, California, USA (approx.)"
   }
 ];
