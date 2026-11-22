@@ -282,5 +282,15 @@ const ROUNDS = [
     start: 2.16, end: 24.84,
     lat: 34.0537, lng: -118.2428,
     answer: "Los Angeles, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-22. ViralHog upload:
+    // https://www.youtube.com/watch?v=NcY79qNl_HI. Place from the description: "Occurred on March
+    // 21, 2022 / Oshkosh, Wisconsin, USA". The uploader's licensing line names the city; the pin
+    // is the city's center as the geocoder puts it.
+    youtubeId: "NcY79qNl_HI",
+    start: 0.7, end: 8.1,
+    lat: 44.0207, lng: -88.5409,
+    answer: "Oshkosh, Wisconsin, USA (approx.)"
   }
 ];
