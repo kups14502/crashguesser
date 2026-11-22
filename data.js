@@ -262,5 +262,15 @@ const ROUNDS = [
     start: 0.91, end: 10.49,
     lat: 42.1626, lng: -71.0413,
     answer: "Randolph, Massachusetts, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-22. ViralHog upload:
+    // https://www.youtube.com/watch?v=caygl-akn_A. Place from the description: "Occurred on July
+    // 2, 2019 / Bakersfield, California, USA". The uploader's licensing line names the city; the
+    // pin is the city's center as the geocoder puts it.
+    youtubeId: "caygl-akn_A",
+    start: 0.84, end: 9.66,
+    lat: 35.3739, lng: -119.0195,
+    answer: "Bakersfield, California, USA (approx.)"
   }
 ];
