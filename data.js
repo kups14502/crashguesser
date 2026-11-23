@@ -302,5 +302,15 @@ const ROUNDS = [
     start: 4.38, end: 50.32,
     lat: 51.6767, lng: -0.6077,
     answer: "Amersham, UK (approx.)"
+  },
+  {
+    // Added after review on 2026-11-23. ViralHog upload:
+    // https://www.youtube.com/watch?v=h8yPEFVu38g. Place from the description: "Occurred on
+    // November 3, 2018 / Cape Coral, Florida, USA". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "h8yPEFVu38g",
+    start: 4.65, end: 53.45,
+    lat: 26.5626, lng: -81.9439,
+    answer: "Cape Coral, Florida, USA (approx.)"
   }
 ];
