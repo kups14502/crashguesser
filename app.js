@@ -34,11 +34,30 @@
   // Height of the band at the top of the player holding YouTube's video title
   // and channel name, which layoutClip() always crops outside the pane.
   const TITLE_CHROME_PX = 76;
+  // The player is never laid out narrower than this, in its own CSS pixels. On
+  // a narrower pane (phones) it is laid out at this width and scaled down with a
+  // CSS transform. TITLE_CHROME_PX was measured on a player about this wide, and
+  // YouTube draws that band at a fixed pixel height, so cropping it from a real
+  // 390px-wide player meant blowing the clip up far wider than the screen. That
+  // was the "videos cut off on mobile" bug.
+  const VIRTUAL_MIN_W = 854;
+  // Keep in step with the matching @media blocks in style.css.
+  const COMPACT_MQ = '(max-width: 800px), (max-aspect-ratio: 1/1)';
+  const SIDE_MQ = '(max-height: 520px) and (min-aspect-ratio: 1/1)';
+  // Floor for the clip pane on phones, and the share of the game area the clip
+  // may take there (the map keeps the rest).
+  const MIN_PANE_PX = 140;
+  const COMPACT_CLIP_SHARE = 0.52;
+  const SITE_URL = 'https://dashguesser.brendonkupsch.com';
 
   const dayNumber = Math.floor((Date.now() - EPOCH_UTC) / 86400000) + 1;
   const rounds = pickRounds(ROUNDS, dayNumber, ROUNDS_PER_DAY);
 
   let progress = loadProgress();
+  // A stored day can hold more scores than today's rounds (rounds-per-day
+  // lowered, or a pool that shrank): treat it as finished rather than load a
+  // round past the end of the list.
+  if (progress.points.length >= rounds.length) progress.done = true;
   let roundIndex = progress.points.length;
   let totalScore = progress.points.reduce((a, b) => a + b, 0);
   let guessMarker = null;
@@ -57,19 +76,31 @@
   let trimTimer = null;
   let revealTimer = null;
   let captionTimer = null;
+  let countdownTimer = null;
   // True from the moment a round's video starts loading until its first
   // PLAYING event. YouTube's title/channel overlay only shows on that first
   // transition (not on the seek-and-replay loop below), so only that one
   // needs the full cover time in armReveal().
   let firstPlayPending = false;
 
-  const map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
+  const compactMq = window.matchMedia(COMPACT_MQ);
+  const sideMq = window.matchMedia(SIDE_MQ);
+  const isCompact = () => compactMq.matches && !sideMq.matches;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+
+  const map = L.map('map', { worldCopyJump: true, minZoom: 1 });
+  resetMapView();
+  // No {s} subdomains: OSM retired them, the bare host is the supported URL.
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     maxZoom: 18
   }).addTo(map);
 
+  const pin = (kind) => L.divIcon({ className: '', html: `<div class="cg-pin ${kind}"></div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+
   const els = {
+    game: document.getElementById('game'),
+    clipPane: document.getElementById('clipPane'),
     roundLabel: document.getElementById('roundLabel'),
     scoreLabel: document.getElementById('scoreLabel'),
     ytFrame: document.getElementById('ytFrame'),
@@ -78,7 +109,7 @@
     textClip: document.getElementById('textClip'),
     clipMeta: document.getElementById('clipMeta'),
     guessBtn: document.getElementById('guessBtn'),
-    nextBtn: document.getElementById('nextBtn'),
+    controls: document.getElementById('controls'),
     videoLoading: document.getElementById('videoLoading'),
     tapPlayBtn: document.getElementById('tapPlayBtn'),
     resultOverlay: document.getElementById('resultOverlay'),
@@ -90,6 +121,8 @@
     finalTitle: document.getElementById('finalTitle'),
     finalScore: document.getElementById('finalScore'),
     shareGrid: document.getElementById('shareGrid'),
+    finalRounds: document.getElementById('finalRounds'),
+    shareBtn: document.getElementById('shareBtn'),
     copyResultBtn: document.getElementById('copyResultBtn'),
     dailyNote: document.getElementById('dailyNote'),
   };
@@ -104,29 +137,50 @@
     els.resultOverlay.hidden = true;
     advanceRound();
   });
-  els.nextBtn.addEventListener('click', () => {
-    els.resultOverlay.hidden = true;
-    advanceRound();
-  });
   els.copyResultBtn.addEventListener('click', copyShareText);
+  if (navigator.share && coarsePointer) {
+    els.shareBtn.hidden = false;
+    els.copyResultBtn.classList.add('secondary');
+    els.shareBtn.addEventListener('click', () => {
+      navigator.share({ text: buildShareText() }).catch(() => { /* dismissed */ });
+    });
+  }
 
-  if (progress.done) {
+  // Enter submits a placed pin, then moves on from the result.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.closest('button, a, input, textarea')) return;
+    if (!els.resultOverlay.hidden) { els.resultNextBtn.click(); e.preventDefault(); }
+    else if (!hasGuessed && !els.guessBtn.disabled && els.finalOverlay.hidden) { submitGuess(); e.preventDefault(); }
+  });
+
+  if (!rounds.length) {
+    els.textClip.textContent = 'No rounds today. Check back soon.';
+    els.textClip.hidden = false;
+    els.guessBtn.hidden = true;
+  } else if (progress.done) {
     showFinal();
   } else {
     loadRound();
   }
 
+  function resetMapView() {
+    // A narrow map at zoom 2 shows a sliver of the world; zoom 1 fits a phone.
+    const w = document.getElementById('map').clientWidth;
+    map.setView([20, 0], w && w < 600 ? 1 : 2);
+  }
+
   function loadRound() {
     hasGuessed = false;
     clearMarkers();
-    map.setView([20, 0], 2);
+    resetMapView();
 
     els.roundLabel.textContent = `Round ${roundIndex + 1} / ${rounds.length}`;
     els.scoreLabel.textContent = `Score: ${totalScore}`;
     els.guessBtn.disabled = true;
-    els.guessBtn.textContent = 'Place a pin to guess';
+    els.guessBtn.textContent = coarsePointer ? 'Tap the map to place a pin' : 'Place a pin to guess';
     els.guessBtn.hidden = false;
-    els.nextBtn.hidden = true;
+    els.controls.hidden = false;
+    els.resultOverlay.hidden = true;
 
     const round = rounds[roundIndex];
     els.ytFrame.hidden = true;
@@ -146,14 +200,31 @@
       layoutClip();
       playYoutube(round);
     } else if (round.file) {
+      layoutClip();
       els.fileVideo.src = round.file;
       els.fileVideo.hidden = false;
     } else {
+      layoutClip();
       els.textClip.textContent = round.text || 'No clip provided for this round.';
       els.textClip.hidden = false;
     }
 
-    els.clipMeta.textContent = 'Where did this happen? Click the map to drop your pin.';
+    els.clipMeta.textContent = coarsePointer
+      ? 'Where did this happen? Tap the map to drop your pin.'
+      : 'Where did this happen? Click the map to drop your pin.';
+  }
+
+  // Stop everything a round left running (the final card sits over a player
+  // that would otherwise keep looping and polling underneath it).
+  function stopPlayback() {
+    clearInterval(trimTimer);
+    clearInterval(revealTimer);
+    clearInterval(captionTimer);
+    clearTimeout(stallTimer);
+    clearTimeout(apiLoadTimer);
+    pendingRound = null;
+    try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch (e) { /* player gone */ }
+    els.fileVideo.pause();
   }
 
   // --- YouTube playback (via IFrame API, never raw <iframe src>) ---
@@ -194,22 +265,51 @@
   // shift fraction S comes from  (H - h)/2 - S*H >= TITLE_CHROME_PX.
   // (TITLE_CHROME_PX is declared with the other constants at the top: layoutClip
   // runs during this IIFE, so a const here would be in the temporal dead zone.)
+  //
+  // All of that maths runs in the player's own pixels ("virtual" below): the
+  // pane is scaled up by k so it is at least VIRTUAL_MIN_W wide, the frame is
+  // laid out against that, and a CSS scale(1/k) brings it back to the screen.
+  // On desktop k is 1 and nothing changes.
+  //
+  // The pane's height is also capped here, at the tallest pane the clip can
+  // fill edge to edge once the title band is cropped. Any taller and the crop
+  // floor forces the frame wider than the pane, cutting the sides off.
   function layoutClip() {
     const round = rounds[roundIndex];
     if (!round) return;
-    const w = els.videoWrap.clientWidth;
-    const h = els.videoWrap.clientHeight;
-    if (!w || !h) return;
+    const wrap = els.videoWrap;
+    if (!round.youtubeId) {
+      wrap.style.height = '';
+      wrap.style.flex = '';
+      return;
+    }
+    const w = wrap.clientWidth;
+    if (!w) return;
 
     const aspect = round.aspect || 16 / 9;
     const zoom = round.zoom || 1;
     const shiftY = round.shiftY || 0;
+    const k = Math.max(1, VIRTUAL_MIN_W / w);
+    const vw = w * k;
 
     // A shift of half the frame or more would push the top edge down faster
     // than extra height can outrun, so clamp before dividing.
     const headroom = Math.max(0.5 - shiftY, 0.05);
-    const minHeight = (TITLE_CHROME_PX + h / 2) / headroom;
-    const height = Math.max(Math.min(h, w / aspect) * zoom, minHeight);
+
+    // Pane height: what is free, capped where the crop floor below would make
+    // the frame exactly as wide as the pane.
+    const ideal = 2 * (headroom * vw / aspect - TITLE_CHROME_PX) / k;
+    const avail = availablePaneHeight();
+    const h = Math.round(Math.max(Math.min(avail, ideal), Math.min(avail, MIN_PANE_PX)));
+    if (!h) return;
+    if (Math.abs(wrap.clientHeight - h) > 1 || !wrap.style.height) {
+      wrap.style.height = h + 'px';
+      wrap.style.flex = '0 0 auto';
+    }
+
+    const hv = h * k;
+    const minHeight = (TITLE_CHROME_PX + hv / 2) / headroom;
+    const height = Math.max(Math.min(hv, vw / aspect) * zoom, minHeight);
     const width = height * aspect;
 
     els.ytFrame.style.width = width + 'px';
@@ -217,15 +317,45 @@
     // Positive shiftY pushes the clip down: it crops more off the bottom, and
     // correspondingly less off the top, which is why it has to be accounted for
     // in minHeight above rather than applied blindly.
-    const shift = shiftY * height;
-    els.ytFrame.style.transform = `translate(-50%, calc(-50% + ${shift}px))`;
+    const shift = shiftY * height / k;
+    els.ytFrame.style.transform = k === 1
+      ? `translate(-50%, calc(-50% + ${shift}px))`
+      : `translate(-50%, calc(-50% + ${shift}px)) scale(${1 / k})`;
   }
 
-  let layoutTimer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(layoutTimer);
-    layoutTimer = setTimeout(layoutClip, 100);
-  });
+  // Height the clip may use. Phones: a share of the game area (the clip pane
+  // sizes to its content there, so it cannot be measured). Elsewhere: the pane.
+  function availablePaneHeight() {
+    const meta = els.clipMeta.offsetHeight || 0;
+    if (isCompact()) {
+      return Math.max(els.game.clientHeight * COMPACT_CLIP_SHARE - meta, MIN_PANE_PX);
+    }
+    return Math.max(els.clipPane.clientHeight - meta, 0);
+  }
+
+  // Re-fit on any size change: window resizes, phone rotation, the mobile URL
+  // bar collapsing, a banner ad appearing. Setting the pane height above
+  // resizes the clip pane on phones, which lands back here and is a no-op.
+  let layoutQueued = false;
+  const queueLayout = () => {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => { layoutQueued = false; layoutClip(); });
+  };
+  window.addEventListener('resize', queueLayout);
+  window.addEventListener('orientationchange', queueLayout);
+  if (window.ResizeObserver) {
+    new ResizeObserver(queueLayout).observe(els.game);
+    new ResizeObserver(queueLayout).observe(els.clipPane);
+    // Leaflet only tracks window resizes; the map's box also changes when the
+    // clip pane above it changes height between rounds.
+    let mapQueued = false;
+    new ResizeObserver(() => {
+      if (mapQueued) return;
+      mapQueued = true;
+      requestAnimationFrame(() => { mapQueued = false; map.invalidateSize({ pan: false }); });
+    }).observe(document.getElementById('map'));
+  }
 
   function playYoutube(round) {
     const id = round.youtubeId;
@@ -394,6 +524,9 @@
 
   function onYtStateChange(e) {
     if (typeof YT === 'undefined') return;
+    // Once the day is over the player is paused on purpose under the final
+    // card; a PAUSED here must not re-arm the stall watch and retry button.
+    if (!els.finalOverlay.hidden) return;
     if (e.data === YT.PlayerState.PLAYING) {
       clearTimeout(stallTimer);
       const firstPlay = firstPlayPending;
@@ -433,10 +566,13 @@
   });
 
   function placeGuessMarker(latlng) {
+    // worldCopyJump lets a click land on a repeated copy of the world
+    // (lng 200, say); wrap it so the pin and the line use real coordinates.
+    latlng = latlng.wrap();
     if (guessMarker) {
       guessMarker.setLatLng(latlng);
     } else {
-      guessMarker = L.marker(latlng, { title: 'Your guess' }).addTo(map);
+      guessMarker = L.marker(latlng, { title: 'Your guess', icon: pin('guess'), keyboard: false }).addTo(map);
     }
     els.guessBtn.disabled = false;
     els.guessBtn.textContent = 'Submit guess';
@@ -454,25 +590,30 @@
     progress.points.push(points);
     saveProgress();
 
-    actualMarker = L.marker([round.lat, round.lng], {
-      title: 'Actual location',
-      icon: L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        iconSize: [25, 41], iconAnchor: [12, 41]
-      })
-    }).addTo(map);
+    // The answer pin is green and the guess red, so the two read apart.
+    actualMarker = L.marker([round.lat, round.lng], { title: 'Actual location', icon: pin('actual'), keyboard: false }).addTo(map);
 
     guessLine = L.polyline([guessLatLng, [round.lat, round.lng]], { color: '#ff5c5c', dashArray: '6 6' }).addTo(map);
-    map.fitBounds(guessLine.getBounds(), { padding: [60, 60] });
 
     els.scoreLabel.textContent = `Score: ${totalScore}`;
     els.resultTitle.textContent = round.answer || 'Location revealed';
-    els.resultDistance.textContent = `Distance: ${distanceKm.toFixed(1)} km`;
+    els.resultDistance.textContent = formatDistance(distanceKm);
     els.resultPoints.textContent = `+${points} points`;
-    els.guessBtn.hidden = true;
-    els.nextBtn.hidden = false;
+    els.resultNextBtn.textContent = roundIndex + 1 >= rounds.length ? 'See results' : 'Next round';
+    els.controls.hidden = true;
     els.resultOverlay.hidden = false;
+
+    // The result panel covers the bottom of the map, so keep the line clear of it.
+    map.invalidateSize({ pan: false });
+    const pad = els.resultOverlay.offsetHeight || 0;
+    map.fitBounds(guessLine.getBounds(), { paddingTopLeft: [40, 40], paddingBottomRight: [40, pad + 30], maxZoom: 12 });
+    els.resultNextBtn.focus({ preventScroll: true });
+  }
+
+  function formatDistance(km) {
+    if (km < 1) return `${Math.round(km * 1000)} m away`;
+    if (km < 100) return `${km.toFixed(1)} km away`;
+    return `${Math.round(km).toLocaleString('en-US')} km away`;
   }
 
   function advanceRound() {
@@ -487,11 +628,44 @@
   function showFinal() {
     progress.done = true;
     saveProgress();
+    stopPlayback();
+    els.resultOverlay.hidden = true;
 
     els.finalTitle.textContent = `CrashGuessr #${dayNumber}`;
-    els.finalScore.textContent = `${totalScore} / ${rounds.length * MAX_POINTS}`;
+    els.finalScore.textContent = `${totalScore.toLocaleString('en-US')} / ${(rounds.length * MAX_POINTS).toLocaleString('en-US')}`;
     els.shareGrid.textContent = progress.points.map(pointsToEmoji).join('');
-    els.dailyNote.textContent = 'Come back tomorrow for a new CrashGuessr.';
+
+    els.finalRounds.textContent = '';
+    progress.points.forEach((p, i) => {
+      const r = rounds[i];
+      if (!r) return;
+      const li = document.createElement('li');
+      const name = document.createElement('span');
+      name.textContent = `${pointsToEmoji(p)} ${r.answer || 'Round ' + (i + 1)}`;
+      const pts = document.createElement('span');
+      pts.className = 'pts';
+      pts.textContent = p.toLocaleString('en-US');
+      li.append(name, pts);
+      els.finalRounds.appendChild(li);
+    });
+
+    // Puzzles turn over at midnight UTC (dayNumber counts whole UTC days).
+    const tick = () => {
+      const next = EPOCH_UTC + dayNumber * 86400000;
+      const left = Math.max(0, next - Date.now());
+      if (!left) {
+        els.dailyNote.textContent = 'A new CrashGuessr is ready. Reload to play.';
+        clearInterval(countdownTimer);
+        return;
+      }
+      const h = Math.floor(left / 3600000);
+      const m = Math.floor((left % 3600000) / 60000);
+      els.dailyNote.textContent = `Next CrashGuessr in ${h}h ${String(m).padStart(2, '0')}m.`;
+    };
+    clearInterval(countdownTimer);
+    tick();
+    countdownTimer = setInterval(tick, 30000);
+
     els.finalOverlay.hidden = false;
   }
 
@@ -504,7 +678,8 @@
   }
 
   function buildShareText() {
-    return `CrashGuessr #${dayNumber} ${totalScore}/${rounds.length * MAX_POINTS}\n\n${progress.points.map(pointsToEmoji).join('')}`;
+    const url = location.protocol === 'https:' ? location.origin : SITE_URL;
+    return `CrashGuessr #${dayNumber} ${totalScore}/${rounds.length * MAX_POINTS}\n\n${progress.points.map(pointsToEmoji).join('')}\n${url}`;
   }
 
   function copyShareText() {
@@ -534,13 +709,18 @@
   function loadProgress() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (raw && raw.day === dayNumber) return raw;
-    } catch (e) { /* corrupt storage, start fresh */ }
+      if (raw && raw.day === dayNumber && Array.isArray(raw.points) &&
+          raw.points.every((p) => Number.isFinite(p) && p >= 0 && p <= MAX_POINTS)) {
+        return { day: raw.day, points: raw.points.map(Math.round), done: raw.done === true };
+      }
+    } catch (e) { /* corrupt storage or storage blocked, start fresh */ }
     return { day: dayNumber, points: [], done: false };
   }
 
   function saveProgress() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    // Throws in some private-browsing modes and when storage is full; the
+    // game still plays, it just won't remember the day across reloads.
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (e) { /* not persisted */ }
   }
 
   function clearMarkers() {

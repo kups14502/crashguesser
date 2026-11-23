@@ -4,33 +4,58 @@
    rule (e.g. #videoLoading's display:flex), which silently defeats every
    el.hidden = true in app.js. Keep this above the layout rules below. */
 [hidden] { display: none !important; }
-html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0e0f12; color: #eee; }
+
+html, body {
+  margin: 0; height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0e0f12; color: #eee;
+  -webkit-text-size-adjust: 100%;
+}
+/* Whole-viewport app: dvh so mobile browser toolbars don't push the controls
+   below the fold (vh is the toolbar-hidden height on iOS and Android). */
+body {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+  overflow: hidden;
+}
 
 #topbar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 20px; background: #17181c; border-bottom: 1px solid #2a2b30;
+  flex: none;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  background: #17181c; border-bottom: 1px solid #2a2b30;
 }
-.brand { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; color: #ff5c5c; }
-.hud { display: flex; gap: 20px; font-variant-numeric: tabular-nums; font-weight: 600; }
-
-/* Clip on top, map underneath, on every screen size. Side-by-side wastes the
-   height a dashcam clip needs and squeezes the map into a tall thin strip.
-   minmax(0, ...) so the panes can shrink instead of overflowing the viewport. */
-#game {
-  display: grid; grid-template-columns: 1fr;
-  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
-  height: calc(100vh - 46px);
+.brand { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; color: #ff5c5c; white-space: nowrap; }
+.hud { display: flex; gap: 20px; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.sponsor-top {
+  flex: 1; min-width: 0; text-align: center; font-size: 0.78rem; color: #999;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.sponsor-top a { color: #ddd; }
+.sponsor-top img { height: 20px; vertical-align: middle; }
 
-#clipPane { position: relative; background: #000; display: flex; flex-direction: column; min-height: 0; }
-#videoWrap { flex: 1; position: relative; overflow: hidden; min-height: 0; }
-#fileVideo { width: 100%; height: 100%; object-fit: contain; border: 0; }
-/* Size/offset are set by layoutClip() in app.js: the pane's aspect ratio is
-   arbitrary, so the fit has to be computed, and per-round zoom/shift is what
-   pushes news-station chyrons and logo bugs outside the pane. */
+/* Clip on top, map underneath. Side-by-side wastes the height a dashcam clip
+   needs and squeezes the map into a tall thin strip (except on short landscape
+   phones, below). min-height: 0 so the panes can shrink instead of overflowing. */
+#game { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+#clipPane { flex: 1.15 1 0; min-height: 0; position: relative; background: #000; display: flex; flex-direction: column; }
+/* layoutClip() in app.js gives this an explicit height for YouTube rounds (no
+   taller than the clip can fill edge to edge) and the auto margins center it in
+   the pane. Without that cap a tall pane forced the clip wider than the screen,
+   which is what cut the sides off on phones. */
+#videoWrap { flex: 1 1 auto; width: 100%; margin: auto 0; position: relative; overflow: hidden; min-height: 0; }
+#fileVideo { width: 100%; height: 100%; object-fit: contain; border: 0; display: block; }
+/* Size, offset and scale are set by layoutClip() in app.js: the pane's aspect
+   ratio is arbitrary, so the fit has to be computed, and per-round zoom/shift is
+   what pushes news-station chyrons and logo bugs outside the pane. */
 #ytFrame {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
+  transform-origin: 50% 50%;
   pointer-events: none;
 }
 #ytPlayerTarget, #ytFrame iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -45,44 +70,131 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 #tapPlayBtn { padding: 10px 20px; }
 .text-clip {
   height: 100%; display: flex; align-items: center; justify-content: center;
   padding: 40px; text-align: center; font-size: 1.3rem; line-height: 1.5;
   background: linear-gradient(135deg, #1a1c22, #26282f); color: #ccc;
 }
-#clipMeta { padding: 10px 16px; background: #111217; font-size: 0.85rem; color: #888; border-top: 1px solid #222; }
+#clipMeta { flex: none; padding: 10px 16px; background: #111217; font-size: 0.85rem; color: #888; border-top: 1px solid #222; }
 
-#mapPane { position: relative; display: flex; flex-direction: column; }
-#map { flex: 1; }
+#mapPane { flex: 1 1 0; min-height: 0; position: relative; display: flex; flex-direction: column; }
+#map { flex: 1; min-height: 0; background: #aad3df; }
 #controls {
+  flex: none;
   padding: 12px; background: #17181c; display: flex; justify-content: center; gap: 10px;
   border-top: 1px solid #2a2b30;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 
 button {
-  background: #ff5c5c; color: #fff; border: none; padding: 10px 22px;
-  border-radius: 6px; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  background: #ff5c5c; color: #fff; border: none; padding: 10px 22px; min-height: 44px;
+  border-radius: 6px; font: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
   transition: transform 0.1s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 button:hover:not(:disabled) { background: #ff7373; }
+button:active:not(:disabled) { transform: scale(0.97); }
+button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 button:disabled { background: #4a3636; color: #998; cursor: not-allowed; }
+button.secondary { background: #2c2e35; }
+button.secondary:hover:not(:disabled) { background: #383a43; }
 
-#resultOverlay, #finalOverlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
+/* Round result: a panel over the bottom of the map, so the map with the guess
+   line stays visible above it instead of being hidden behind a modal. */
+.result-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1001;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: rgba(23, 24, 28, 0.96); border-top: 1px solid #333;
 }
-#resultOverlay[hidden], #finalOverlay[hidden] { display: none; }
-#resultCard {
-  background: #1c1d22; padding: 30px 40px; border-radius: 12px; text-align: center;
-  border: 1px solid #333; min-width: 320px;
+.result-text { flex: 1; min-width: 0; }
+.result-panel h2 { margin: 0 0 4px; font-size: 1.05rem; color: #ff5c5c; line-height: 1.3; }
+.result-line { margin: 0; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.result-line .dot { color: #666; margin: 0 4px; }
+#resultPoints { font-weight: 700; }
+#resultNextBtn { flex: none; }
+
+#finalOverlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex; padding: 16px; overflow-y: auto;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
-#resultCard h2 { margin-top: 0; color: #ff5c5c; }
-#resultCard p { font-size: 1.1rem; margin: 10px 0; }
+.card {
+  margin: auto; width: min(100%, 440px);
+  background: #1c1d22; padding: 26px 28px; border-radius: 12px; text-align: center;
+  border: 1px solid #333;
+}
+.card h2 { margin-top: 0; color: #ff5c5c; }
+#finalScore { font-size: 1.4rem; font-weight: 700; margin: 6px 0; font-variant-numeric: tabular-nums; }
+#shareGrid { font-size: 1.8rem; letter-spacing: 4px; margin: 10px 0; }
+#finalRounds {
+  list-style: none; padding: 0; margin: 12px 0; text-align: left; font-size: 0.85rem; color: #bbb;
+  border-top: 1px solid #2a2b30;
+}
+#finalRounds li { display: flex; gap: 10px; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #2a2b30; }
+#finalRounds .pts { flex: none; font-weight: 700; color: #eee; font-variant-numeric: tabular-nums; }
+.final-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+#dailyNote { font-size: 0.85rem; color: #888; font-variant-numeric: tabular-nums; }
 
-#shareGrid { font-size: 1.8rem; letter-spacing: 4px; margin: 14px 0; }
-#dailyNote { font-size: 0.85rem; color: #888; }
+/* Monetization slots (all hidden unless config.js turns them on). */
+.ad-slot { text-align: center; }
+.ad-banner { flex: none; min-height: 90px; background: #0e0f12; border-top: 1px solid #2a2b30; }
+.ad-final { margin-top: 14px; min-height: 100px; }
+.sponsor-final { margin-top: 14px; font-size: 0.85rem; color: #aaa; }
+.sponsor-final a, .affiliate-box a { color: #ff8a8a; }
+.sponsor-tagline { margin-top: 4px; color: #888; }
+.affiliate-box { margin-top: 16px; text-align: left; font-size: 0.85rem; border-top: 1px solid #2a2b30; padding-top: 10px; }
+.affiliate-box h3 { margin: 0 0 6px; font-size: 0.9rem; color: #ddd; }
+.affiliate-box ul { margin: 0; padding-left: 18px; }
+.affiliate-box li { margin: 4px 0; }
+.affiliate-note { color: #888; }
+.affiliate-disclosure { margin: 8px 0 0; font-size: 0.75rem; color: #777; }
 
-@media (max-width: 800px) {
-  #game { grid-template-rows: 45vh minmax(0, 1fr); height: auto; min-height: calc(100vh - 46px); }
+/* Map pins drawn in CSS (no marker image downloads), and the guess and the
+   answer in different colors so they can be told apart. */
+.cg-pin {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.cg-pin.guess { background: #ff5c5c; }
+.cg-pin.actual { background: #2fbf6a; }
+
+/* Phones and portrait tablets: the clip pane sizes to the clip (app.js sets
+   #videoWrap's height) and the map takes the rest. Must match COMPACT_MQ in app.js. */
+@media (max-width: 800px), (max-aspect-ratio: 1/1) {
+  #topbar { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .brand { font-size: 1.05rem; }
+  .hud { gap: 12px; font-size: 0.9rem; }
+  #clipPane { flex: 0 0 auto; }
+  #videoWrap { flex: 0 0 auto; height: 40vh; height: 40dvh; }
+  #clipMeta { padding: 6px 12px; font-size: 0.8rem; }
+  #mapPane { flex: 1 1 auto; }
+  #controls { padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  #guessBtn { width: 100%; max-width: 440px; }
+  .result-panel { padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); gap: 10px; }
+  .result-panel h2 { font-size: 0.95rem; }
+  .result-line { font-size: 0.88rem; }
+  .card { padding: 20px 16px; }
+  .ad-banner { min-height: 50px; }
+}
+@media (max-width: 360px) {
+  .sponsor-top { display: none; }
+  .hud { gap: 8px; font-size: 0.82rem; }
+  #shareGrid { font-size: 1.5rem; }
+}
+
+/* Short landscape phones: clip and map side by side, or neither has room.
+   Must match SIDE_MQ in app.js. Comes after the compact block on purpose. */
+@media (max-height: 520px) and (min-aspect-ratio: 1/1) {
+  #topbar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
+  #game { flex-direction: row; }
+  #clipPane { flex: 1.2 1 0; min-width: 0; }
+  #videoWrap { flex: 1 1 auto; height: auto; }
+  #mapPane { flex: 1 1 0; min-width: 0; border-left: 1px solid #2a2b30; }
+  #clipMeta { display: none; }
+  .ad-banner { min-height: 50px; }
 }

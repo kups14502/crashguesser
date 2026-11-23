@@ -86,7 +86,16 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
     headless: true,
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
   });
-  const page = await browser.newPage();
+  // CG_MOBILE=1 plays the day on a phone-sized touch viewport (iPhone 14
+  // portrait), where app.js lays the player out at VIRTUAL_MIN_W and scales it
+  // down. CG_VIEWPORT=WxH picks any other size.
+  const vp = process.env.CG_VIEWPORT ? process.env.CG_VIEWPORT.split('x').map(Number)
+    : process.env.CG_MOBILE ? [390, 844] : null;
+  const page = await browser.newPage(vp ? {
+    viewport: { width: vp[0], height: vp[1] },
+    ...(process.env.CG_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
+  } : {});
+  if (vp) console.log(`viewport ${vp[0]}x${vp[1]}${process.env.CG_MOBILE ? ' (mobile, touch)' : ''}`);
 
   const errors = [];
   const notFound = [];
@@ -278,17 +287,28 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
       // loaded says the clip HAS captions available, not that any are being
       // rendered; a non-empty track object means they are on screen.
       try { track = p && p.getOption ? p.getOption('captions', 'track') : null; } catch (e) { /* not ready */ }
-      // How much of the player is clipped off by the pane, in real pixels.
-      const wrap = document.getElementById('videoWrap').getBoundingClientRect();
-      const frame = document.getElementById('ytFrame').getBoundingClientRect();
+      // How much of the player is clipped off by the pane, in the player's own
+      // pixels. On a narrow pane app.js lays the player out wider than the
+      // screen and scales it down, and YouTube draws its title band in the
+      // player's pixels, so screen pixels divided by that scale is what counts.
+      const wrapEl = document.getElementById('videoWrap');
+      const frameEl = document.getElementById('ytFrame');
+      const wrap = wrapEl.getBoundingClientRect();
+      const frame = frameEl.getBoundingClientRect();
+      const scale = frameEl.offsetHeight ? frame.height / frameEl.offsetHeight : 1;
+      // Share of the clip's width the pane shows (1 = edge to edge or better).
+      const widthShown = frame.width ? Math.min(1, wrap.width / frame.width) : 0;
       return {
         hiddenAttr: ld.hidden,
         computed: getComputedStyle(ld).display,
         retryShown: btn && !btn.hidden,
         retryText: btn ? btn.textContent : null,
         videoId: data ? data.video_id : null,
-        cropTopPx: Math.round(wrap.top - frame.top),
-        cropBottomPx: Math.round(frame.bottom - wrap.bottom),
+        cropTopPx: Math.round((wrap.top - frame.top) / scale),
+        cropBottomPx: Math.round((frame.bottom - wrap.bottom) / scale),
+        scale: scale,
+        widthShown: widthShown,
+        aspect: frame.height ? frame.width / frame.height : 0,
         states: window.__yt.states.slice(m.s),
         cover: window.__yt.cover.slice(m.c),
         options: options,
@@ -299,7 +319,8 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
     }, mark);
 
     console.log(`  info  videoId=${st.videoId} beacons=${mediaTime.seen} maxTime=${maxTime.toFixed(1)}s ` +
-                `crop=${st.cropTopPx}px/${st.cropBottomPx}px`);
+                `crop=${st.cropTopPx}px/${st.cropBottomPx}px scale=${st.scale.toFixed(2)} ` +
+                `width shown=${Math.round(st.widthShown * 100)}%`);
     console.log(`  info  states: ${st.states.map((s) => s.s).join(' > ') || '(none)'}`);
     if (st.videoId) playedIds.push(st.videoId);
 
@@ -341,6 +362,14 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail.push(m); };
     } else {
       bad(`top of player only cropped ${st.cropTopPx}px (< ${MIN_TOP_CROP_PX}px): ` +
           'YouTube title/channel bar is on screen');
+    }
+
+    // The mobile bug this guards: the crop floor forced the player several
+    // times wider than a phone screen, so most of the clip was off the sides.
+    // A landscape clip with no per-round zoom must show its full width.
+    if (meta && !(meta.zoom > 1) && st.aspect >= 1) {
+      if (st.widthShown >= 0.98) ok(`clip shown edge to edge (${Math.round(st.widthShown * 100)}% of its width)`);
+      else bad(`clip cut off at the sides: only ${Math.round(st.widthShown * 100)}% of its width is on screen`);
     }
 
     // Cover must be held across the title fade, measured from the first
