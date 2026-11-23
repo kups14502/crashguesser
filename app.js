@@ -77,6 +77,8 @@
   let revealTimer = null;
   let captionTimer = null;
   let countdownTimer = null;
+  let shownScore = 0;
+  let scoreAnim = 0;
   // True from the moment a round's video starts loading until its first
   // PLAYING event. YouTube's title/channel overlay only shows on that first
   // transition (not on the seek-and-replay loop below), so only that one
@@ -88,21 +90,112 @@
   const isCompact = () => compactMq.matches && !sideMq.matches;
   const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-  const map = L.map('map', { worldCopyJump: true, minZoom: 1 });
+  // One world, no repeats: tiles do not wrap, the view cannot pan past the
+  // edges, and the map cannot zoom out past the world's width (setMinZoom in
+  // fitWorldZoom). Fractional zoom so "the world's width" is exact on any
+  // screen instead of the nearest power of two.
+  const WORLD = L.latLngBounds([[-85.05, -180], [85.05, 180]]);
+  const map = L.map('map', {
+    worldCopyJump: false, maxBounds: WORLD, maxBoundsViscosity: 1,
+    zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 90, minZoom: 0,
+  });
+  fitWorldZoom();
   resetMapView();
-  // No {s} subdomains: OSM retired them, the bare host is the supported URL.
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-    maxZoom: 18
-  }).addTo(map);
+  addBaseMap();
 
-  const pin = (kind) => L.divIcon({ className: '', html: `<div class="cg-pin ${kind}"></div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+  // Set once the player pans or zooms the map, so a late layout change (the
+  // clip pane settling its height on phones) re-fits the world only while
+  // nobody has touched it yet.
+  let mapTouched = false;
+  ['pointerdown', 'wheel', 'touchstart'].forEach((ev) =>
+    map.getContainer().addEventListener(ev, () => { mapTouched = true; }, { passive: true }));
+
+  // Basemap: OpenFreeMap's dark style (free, no key, no signup, no view
+  // limits), drawn by MapLibre GL through its Leaflet bridge, so markers,
+  // clicks and the guess line stay plain Leaflet. MapLibre is about 275 KB
+  // gzipped, so it loads after the game is up, pinned with SRI hashes.
+  // CARTO's raster tiles were the first choice and now watermark every tile
+  // "API KEY REQUIRED". Without WebGL, or if the load fails, the map falls
+  // back to OSM raster tiles darkened in CSS (.cg-raster-dark).
+  function addBaseMap() {
+    const ATTR = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ' +
+      '&copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ' +
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+    let settled = false;
+    let vector = null;
+    const fallback = () => {
+      if (settled) return;
+      settled = true;
+      if (vector) {
+        map.removeLayer(vector);
+        map.attributionControl.removeAttribution(ATTR);
+        vector = null;
+      }
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        noWrap: true, bounds: WORLD, maxZoom: 19, className: 'cg-raster-dark',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      }).addTo(map);
+    };
+    if (!hasWebGL()) return fallback();
+    // Generous: on a slow phone connection MapLibre plus the style and first
+    // tiles can take a while, and falling back early throws that work away.
+    const timer = setTimeout(fallback, 20000);
+    const base = 'https://unpkg.com/';
+    loadAsset('link', base + 'maplibre-gl@5.24.1/dist/maplibre-gl.css', 'sha384-uTttxo/aOKbdE5RlD/SPzSDoDmNvGlUYPjONi2MN/b7c9HPSvW07OIuyP7uL6jxK');
+    loadAsset('script', base + 'maplibre-gl@5.24.1/dist/maplibre-gl.js', 'sha384-nXMl9YiLoSG5KBPTFgvxVuIqQQcqIvo0bFrvoEaGJC6r7IibIzF1S36Zbf/sKBtL')
+      .then(() => loadAsset('script', base + '@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js', 'sha384-tXYNKOHx4T02jMP7YYCtBxPIv1B5gaA5mcVPBzqMp6d7VzWzxJgI2aWF/nJLrQdS'))
+      .then(() => {
+        if (settled || !L.maplibreGL) return fallback();
+        const layer = vector = L.maplibreGL({
+          style: 'https://tiles.openfreemap.org/styles/dark',
+          renderWorldCopies: false, attributionControl: false,
+        });
+        layer.addTo(map);
+        map.attributionControl.addAttribution(ATTR);
+        const gl = layer.getMaplibreMap && layer.getMaplibreMap();
+        if (!gl) { settled = true; clearTimeout(timer); return; }
+        gl.once('load', () => { settled = true; clearTimeout(timer); });
+        gl.on('error', (e) => {
+          // A broken style or blocked tile host: swap to the raster fallback
+          // rather than leave a blank map, but only before the first load.
+          if (settled) return;
+          clearTimeout(timer);
+          fallback();
+          if (window.console) console.warn('vector basemap failed', e && e.error);
+        });
+      })
+      .catch(() => { clearTimeout(timer); fallback(); });
+  }
+
+  function hasWebGL() {
+    try {
+      const c = document.createElement('canvas');
+      return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    } catch (e) { return false; }
+  }
+
+  function loadAsset(tag, url, integrity) {
+    return new Promise((resolve, reject) => {
+      const el = document.createElement(tag);
+      if (tag === 'link') { el.rel = 'stylesheet'; el.href = url; } else { el.src = url; el.async = true; }
+      el.integrity = integrity;
+      el.crossOrigin = 'anonymous';
+      el.onload = resolve;
+      el.onerror = reject;
+      document.head.appendChild(el);
+    });
+  }
+
+  const pin = (kind) => L.divIcon({ className: 'cg-pin-wrap', html: `<div class="cg-pin ${kind}"><span></span></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
 
   const els = {
     game: document.getElementById('game'),
     clipPane: document.getElementById('clipPane'),
     roundLabel: document.getElementById('roundLabel'),
     scoreLabel: document.getElementById('scoreLabel'),
+    roundDots: document.getElementById('roundDots'),
+    resultBar: document.getElementById('resultBar'),
+    finalMeter: document.getElementById('finalMeter'),
     ytFrame: document.getElementById('ytFrame'),
     videoWrap: document.getElementById('videoWrap'),
     fileVideo: document.getElementById('fileVideo'),
@@ -163,19 +256,37 @@
     loadRound();
   }
 
+  // Zoom at which the world is exactly as wide as the map (the floor), and the
+  // zoom that also fills its height (the starting view, no empty bands).
+  function worldZooms() {
+    const el = map.getContainer();
+    const w = el.clientWidth, h = el.clientHeight;
+    if (!w || !h) return null;
+    const q = (z) => Math.max(0, Math.ceil(z * 4) / 4);
+    return { min: q(Math.log2(w / 256)), fill: q(Math.log2(Math.max(w, h) / 256)) };
+  }
+
+  function fitWorldZoom() {
+    const z = worldZooms();
+    if (z && map.getMinZoom() !== z.min) map.setMinZoom(z.min);
+  }
+
   function resetMapView() {
-    // A narrow map at zoom 2 shows a sliver of the world; zoom 1 fits a phone.
-    const w = document.getElementById('map').clientWidth;
-    map.setView([20, 0], w && w < 600 ? 1 : 2);
+    const z = worldZooms();
+    // Centered a little west and north of 0,0 so a cropped phone view keeps
+    // the Americas' west coast and Europe on screen rather than Antarctica.
+    map.setView([25, -10], z ? z.fill : 1, { animate: false });
   }
 
   function loadRound() {
     hasGuessed = false;
     clearMarkers();
+    mapTouched = false;
     resetMapView();
 
     els.roundLabel.textContent = `Round ${roundIndex + 1} / ${rounds.length}`;
-    els.scoreLabel.textContent = `Score: ${totalScore}`;
+    setScore(totalScore, false);
+    renderDots();
     els.guessBtn.disabled = true;
     els.guessBtn.textContent = coarsePointer ? 'Tap the map to place a pin' : 'Place a pin to guess';
     els.guessBtn.hidden = false;
@@ -353,7 +464,12 @@
     new ResizeObserver(() => {
       if (mapQueued) return;
       mapQueued = true;
-      requestAnimationFrame(() => { mapQueued = false; map.invalidateSize({ pan: false }); });
+      requestAnimationFrame(() => {
+        mapQueued = false;
+        map.invalidateSize({ pan: false });
+        fitWorldZoom();
+        if (!mapTouched && !guessMarker && !hasGuessed) resetMapView();
+      });
     }).observe(document.getElementById('map'));
   }
 
@@ -593,12 +709,16 @@
     // The answer pin is green and the guess red, so the two read apart.
     actualMarker = L.marker([round.lat, round.lng], { title: 'Actual location', icon: pin('actual'), keyboard: false }).addTo(map);
 
-    guessLine = L.polyline([guessLatLng, [round.lat, round.lng]], { color: '#ff5c5c', dashArray: '6 6' }).addTo(map);
+    guessLine = L.polyline([guessLatLng, [round.lat, round.lng]], { className: 'cg-line', color: '#ff5468', weight: 2.5, dashArray: '6 8' }).addTo(map);
 
-    els.scoreLabel.textContent = `Score: ${totalScore}`;
+    setScore(totalScore, true);
+    renderDots();
     els.resultTitle.textContent = round.answer || 'Location revealed';
     els.resultDistance.textContent = formatDistance(distanceKm);
-    els.resultPoints.textContent = `+${points} points`;
+    els.resultPoints.textContent = `+${points.toLocaleString('en-US')} points`;
+    els.resultOverlay.dataset.tier = tierOf(points);
+    els.resultBar.style.width = '0%';
+    requestAnimationFrame(() => requestAnimationFrame(() => { els.resultBar.style.width = `${(points / MAX_POINTS) * 100}%`; }));
     els.resultNextBtn.textContent = roundIndex + 1 >= rounds.length ? 'See results' : 'Next round';
     els.controls.hidden = true;
     els.resultOverlay.hidden = false;
@@ -606,7 +726,10 @@
     // The result panel covers the bottom of the map, so keep the line clear of it.
     map.invalidateSize({ pan: false });
     const pad = els.resultOverlay.offsetHeight || 0;
-    map.fitBounds(guessLine.getBounds(), { paddingTopLeft: [40, 40], paddingBottomRight: [40, pad + 30], maxZoom: 12 });
+    map.flyToBounds(guessLine.getBounds(), {
+      paddingTopLeft: [40, 40], paddingBottomRight: [40, pad + 40], maxZoom: 12,
+      duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 0.8,
+    });
     els.resultNextBtn.focus({ preventScroll: true });
   }
 
@@ -630,9 +753,16 @@
     saveProgress();
     stopPlayback();
     els.resultOverlay.hidden = true;
+    els.roundLabel.textContent = `Round ${rounds.length} / ${rounds.length}`;
+    setScore(totalScore, false);
+    renderDots();
 
     els.finalTitle.textContent = `CrashGuessr #${dayNumber}`;
     els.finalScore.textContent = `${totalScore.toLocaleString('en-US')} / ${(rounds.length * MAX_POINTS).toLocaleString('en-US')}`;
+    els.finalMeter.style.width = '0%';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      els.finalMeter.style.width = `${(totalScore / Math.max(1, rounds.length * MAX_POINTS)) * 100}%`;
+    }));
     els.shareGrid.textContent = progress.points.map(pointsToEmoji).join('');
 
     els.finalRounds.textContent = '';
@@ -640,8 +770,14 @@
       const r = rounds[i];
       if (!r) return;
       const li = document.createElement('li');
+      li.dataset.tier = tierOf(p);
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = String(i + 1);
       const name = document.createElement('span');
-      name.textContent = `${pointsToEmoji(p)} ${r.answer || 'Round ' + (i + 1)}`;
+      name.className = 'name';
+      name.textContent = r.answer || 'Round ' + (i + 1);
+      li.appendChild(num);
       const pts = document.createElement('span');
       pts.className = 'pts';
       pts.textContent = p.toLocaleString('en-US');
@@ -669,6 +805,47 @@
     els.finalOverlay.hidden = false;
   }
 
+  // Score tier for colors (dots, bars, list): same cut points as the emoji.
+  function tierOf(points) {
+    const pct = points / MAX_POINTS;
+    return pct >= 0.9 ? 'great' : pct >= 0.6 ? 'good' : pct >= 0.3 ? 'ok' : 'miss';
+  }
+
+  // One dot per round in the top bar: played rounds colored by tier, the
+  // current round outlined.
+  function renderDots() {
+    els.roundDots.textContent = '';
+    rounds.forEach((_, i) => {
+      const d = document.createElement('span');
+      if (i < progress.points.length) d.dataset.tier = tierOf(progress.points[i]);
+      else if (i === roundIndex) d.className = 'current';
+      els.roundDots.appendChild(d);
+    });
+  }
+
+  // Score in the top bar; counts up after a guess.
+  function setScore(value, animate) {
+    cancelAnimationFrame(scoreAnim);
+    const from = shownScore;
+    shownScore = value;
+    if (!animate || from === value || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.scoreLabel.textContent = value.toLocaleString('en-US');
+      return;
+    }
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 700);
+      const e = 1 - Math.pow(1 - k, 3);
+      els.scoreLabel.textContent = Math.round(from + (value - from) * e).toLocaleString('en-US');
+      if (k < 1) scoreAnim = requestAnimationFrame(step);
+    };
+    scoreAnim = requestAnimationFrame(step);
+    const chip = els.scoreLabel.parentElement;
+    chip.classList.remove('bump');
+    void chip.offsetWidth;
+    chip.classList.add('bump');
+  }
+
   function pointsToEmoji(points) {
     const pct = points / MAX_POINTS;
     if (pct >= 0.9) return '🟩';
@@ -686,7 +863,7 @@
     const text = buildShareText();
     const done = () => {
       els.copyResultBtn.textContent = 'Copied!';
-      setTimeout(() => { els.copyResultBtn.textContent = 'Copy Result'; }, 1500);
+      setTimeout(() => { els.copyResultBtn.textContent = 'Copy result'; }, 1500);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
