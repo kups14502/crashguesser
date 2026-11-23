@@ -312,5 +312,15 @@ const ROUNDS = [
     start: 4.65, end: 53.45,
     lat: 26.5626, lng: -81.9439,
     answer: "Cape Coral, Florida, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-23. ViralHog upload:
+    // https://www.youtube.com/watch?v=VH5CUsWaud0. Place from the description: "Occurred on
+    // February 12, 2022 / Denver, Colorado, USA". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "VH5CUsWaud0",
+    start: 1.12, end: 12.88,
+    lat: 39.7392, lng: -104.9849,
+    answer: "Denver, Colorado, USA (approx.)"
   }
 ];
