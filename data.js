@@ -292,5 +292,15 @@ const ROUNDS = [
     start: 0.7, end: 8.1,
     lat: 44.0207, lng: -88.5409,
     answer: "Oshkosh, Wisconsin, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-23. ViralHog upload:
+    // https://www.youtube.com/watch?v=Iwy_dTK2A6I. Place from the description: "Occurred on May 4,
+    // 2017 / Amersham, UK". The uploader's licensing line names the city; the pin is the city's
+    // center as the geocoder puts it.
+    youtubeId: "Iwy_dTK2A6I",
+    start: 4.38, end: 50.32,
+    lat: 51.6767, lng: -0.6077,
+    answer: "Amersham, UK (approx.)"
   }
 ];
