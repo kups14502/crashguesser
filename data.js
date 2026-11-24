@@ -322,5 +322,15 @@ const ROUNDS = [
     start: 1.12, end: 12.88,
     lat: 39.7392, lng: -104.9849,
     answer: "Denver, Colorado, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-24. ViralHog upload:
+    // https://www.youtube.com/watch?v=Gx9KnebHBuU. Place from the description: "Occurred on May
+    // 29, 2024 / Concord, California, USA". The uploader's licensing line names the city; the pin
+    // is the city's center as the geocoder puts it.
+    youtubeId: "Gx9KnebHBuU",
+    start: 1.75, end: 20.15,
+    lat: 37.9769, lng: -122.0336,
+    answer: "Concord, California, USA (approx.)"
   }
 ];
