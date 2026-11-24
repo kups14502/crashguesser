@@ -332,5 +332,14 @@ const ROUNDS = [
     start: 1.75, end: 20.15,
     lat: 37.9769, lng: -122.0336,
     answer: "Concord, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-24. ViralHog upload:
+    // https://www.youtube.com/watch?v=MbVB0D6SujA. Place from the description: "Johansen
+    // Expressway, Fairbanks, Alaska". Continuous raw dashcam clip of a snowy multi-vehicle skid,
+    // description names the exact road and city, overlay is only date/time/speed.
+    youtubeId: "MbVB0D6SujA",
+    lat: 64.853, lng: -147.722,
+    answer: "Fairbanks, Alaska, USA (Johansen Expressway, approx.)"
   }
 ];
