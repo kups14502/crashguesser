@@ -341,5 +341,14 @@ const ROUNDS = [
     youtubeId: "MbVB0D6SujA",
     lat: 64.853, lng: -147.722,
     answer: "Fairbanks, Alaska, USA (Johansen Expressway, approx.)"
+  },
+  {
+    // Added after review on 2026-11-24. ViralHog upload:
+    // https://www.youtube.com/watch?v=9goDsNCVRSY. Place from the description: "Volzhsky, Russia".
+    // Single continuous collision-and-rollover event, overlay is just a device brand/model and
+    // timestamp, description names the city.
+    youtubeId: "9goDsNCVRSY",
+    lat: 48.8126, lng: 44.7707,
+    answer: "Volzhsky, Russia (approx.)"
   }
 ];
