@@ -350,5 +350,14 @@ const ROUNDS = [
     youtubeId: "9goDsNCVRSY",
     lat: 48.8126, lng: 44.7707,
     answer: "Volzhsky, Russia (approx.)"
+  },
+  {
+    // Added after review on 2026-11-25. ViralHog upload:
+    // https://www.youtube.com/watch?v=Bp9HflfnRLo. Place from the description: "Acton, California,
+    // USA". Short truck-cam clip of a single u-turn crash, only a date/time stamp on screen,
+    // description names the city.
+    youtubeId: "Bp9HflfnRLo",
+    lat: 34.497, lng: -118.1709,
+    answer: "Acton, California, USA (approx.)"
   }
 ];
