@@ -368,5 +368,14 @@ const ROUNDS = [
     youtubeId: "gy5CQHXG-ZI",
     lat: 35.996, lng: -78.8997,
     answer: "Durham, North Carolina, USA (Duke Street, approx.)"
+  },
+  {
+    // Added after review on 2026-11-25. ViralHog upload:
+    // https://www.youtube.com/watch?v=dwDtdlcmi24. Place from the description: "San Jose,
+    // California, USA". Single continuous residential-street crash, only a date/time stamp on
+    // screen, description names the city.
+    youtubeId: "dwDtdlcmi24",
+    lat: 37.3382, lng: -121.8863,
+    answer: "San Jose, California, USA (approx.)"
   }
 ];
