@@ -359,5 +359,14 @@ const ROUNDS = [
     youtubeId: "Bp9HflfnRLo",
     lat: 34.497, lng: -118.1709,
     answer: "Acton, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-25. ViralHog upload:
+    // https://www.youtube.com/watch?v=gy5CQHXG-ZI. Place from the description: "Duke Street,
+    // Durham (NC)". Description names an exact street and city, frames show no overlay text at
+    // all.
+    youtubeId: "gy5CQHXG-ZI",
+    lat: 35.996, lng: -78.8997,
+    answer: "Durham, North Carolina, USA (Duke Street, approx.)"
   }
 ];
