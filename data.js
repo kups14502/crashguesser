@@ -387,5 +387,15 @@ const ROUNDS = [
     start: 4.58, end: 52.72,
     lat: -21.5958, lng: -48.8123,
     answer: "Itapolis, Sao Paulo, Brazil (approx.)"
+  },
+  {
+    // Added after review on 2026-11-26. ViralHog upload:
+    // https://www.youtube.com/watch?v=MbdzF4GdZv0. Place from the description: "Occurred on April
+    // 26, 2025 / Langley, British Columbia, Canada". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "MbdzF4GdZv0",
+    start: 2, end: 23,
+    lat: 49.1039, lng: -122.657,
+    answer: "Langley, British Columbia, Canada (approx.)"
   }
 ];
