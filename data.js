@@ -397,5 +397,15 @@ const ROUNDS = [
     start: 2, end: 23,
     lat: 49.1039, lng: -122.657,
     answer: "Langley, British Columbia, Canada (approx.)"
+  },
+  {
+    // Added after review on 2026-11-26. ViralHog upload:
+    // https://www.youtube.com/watch?v=l3n7OdHHOGs. Place from the description: "Occurred on August
+    // 10, 2018 / Jasper, Alberta, Canada". The uploader's licensing line names the city; the pin
+    // is the city's center as the geocoder puts it.
+    youtubeId: "l3n7OdHHOGs",
+    start: 4.8, end: 55.2,
+    lat: 52.8752, lng: -118.0824,
+    answer: "Jasper, Alberta, Canada (approx.)"
   }
 ];
