@@ -377,5 +377,15 @@ const ROUNDS = [
     youtubeId: "dwDtdlcmi24",
     lat: 37.3382, lng: -121.8863,
     answer: "San Jose, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-26. ViralHog upload:
+    // https://www.youtube.com/watch?v=3MWY2-7fq3c. Place from the description: "Occurred on July
+    // 7, 2021 / Itapolis, Sao Paulo, Brazil". The uploader's licensing line names the city; the
+    // pin is the city's center as the geocoder puts it.
+    youtubeId: "3MWY2-7fq3c",
+    start: 4.58, end: 52.72,
+    lat: -21.5958, lng: -48.8123,
+    answer: "Itapolis, Sao Paulo, Brazil (approx.)"
   }
 ];
