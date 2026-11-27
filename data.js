@@ -407,5 +407,15 @@ const ROUNDS = [
     start: 4.8, end: 55.2,
     lat: 52.8752, lng: -118.0824,
     answer: "Jasper, Alberta, Canada (approx.)"
+  },
+  {
+    // Added after review on 2026-11-27. ViralHog upload:
+    // https://www.youtube.com/watch?v=qc8xWhPBa4Y. Place from the description: "Occurred on
+    // November 11, 2019 / Apple Valley, California, USA". The uploader's licensing line names the
+    // city; the pin is the city's center as the geocoder puts it.
+    youtubeId: "qc8xWhPBa4Y",
+    start: 2.35, end: 27.05,
+    lat: 34.5008, lng: -117.1859,
+    answer: "Apple Valley, California, USA (approx.)"
   }
 ];
