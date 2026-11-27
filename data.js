@@ -427,5 +427,15 @@ const ROUNDS = [
     start: 3.66, end: 42.14,
     lat: 39.7086, lng: -105.0847,
     answer: "Lakewood, Colorado, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-27. ViralHog upload:
+    // https://www.youtube.com/watch?v=kRhDxaDrkLs. Place from the description: "Occurred on
+    // September 1, 2020 / Dallas, Texas, USA". The uploader's licensing line names the city; the
+    // pin is the city's center as the geocoder puts it.
+    youtubeId: "kRhDxaDrkLs",
+    start: 2.78, end: 32.02,
+    lat: 32.7763, lng: -96.7969,
+    answer: "Dallas, Texas, USA (approx.)"
   }
 ];
