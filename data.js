@@ -417,5 +417,15 @@ const ROUNDS = [
     start: 2.35, end: 27.05,
     lat: 34.5008, lng: -117.1859,
     answer: "Apple Valley, California, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-27. ViralHog upload:
+    // https://www.youtube.com/watch?v=dZmZhB3isxE. Place from the description: "Occurred on
+    // November 4, 2022 / Lakewood, Colorado, USA". The uploader's licensing line names the city;
+    // the pin is the city's center as the geocoder puts it.
+    youtubeId: "dZmZhB3isxE",
+    start: 3.66, end: 42.14,
+    lat: 39.7086, lng: -105.0847,
+    answer: "Lakewood, Colorado, USA (approx.)"
   }
 ];
