@@ -457,5 +457,15 @@ const ROUNDS = [
     start: 2.14, end: 24.66,
     lat: 34.2073, lng: -84.1402,
     answer: "Cumming, Georgia, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-28. ViralHog upload:
+    // https://www.youtube.com/watch?v=ZtWTO9nKgi8. Place from the description: "Occurred on
+    // September 21, 2017 / La Habra, California, USA". The uploader's licensing line names the
+    // city; the pin is the city's center as the geocoder puts it.
+    youtubeId: "ZtWTO9nKgi8",
+    start: 4.32, end: 49.68,
+    lat: 33.9316, lng: -117.9455,
+    answer: "La Habra, California, USA (approx.)"
   }
 ];
