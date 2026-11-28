@@ -437,5 +437,15 @@ const ROUNDS = [
     start: 2.78, end: 32.02,
     lat: 32.7763, lng: -96.7969,
     answer: "Dallas, Texas, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-28. Newsflare upload:
+    // https://www.youtube.com/watch?v=HycC1cy3hqw. Place from the description: "Occurred on August
+    // 7, 2025 / Fort Collins, Colorado, USA". The uploader's licensing line names the city; the
+    // pin is the city's center as the geocoder puts it.
+    youtubeId: "HycC1cy3hqw",
+    start: 1.55, end: 17.85,
+    lat: 40.5872, lng: -105.077,
+    answer: "Fort Collins, Colorado, USA (approx.)"
   }
 ];
