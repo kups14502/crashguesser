@@ -447,5 +447,15 @@ const ROUNDS = [
     start: 1.55, end: 17.85,
     lat: 40.5872, lng: -105.077,
     answer: "Fort Collins, Colorado, USA (approx.)"
+  },
+  {
+    // Added after review on 2026-11-28. ViralHog upload:
+    // https://www.youtube.com/watch?v=ubQyezKtxbo. Place from the description: "Occurred on May
+    // 10, 2023 / Cumming, Georgia, USA". The uploader's licensing line names the city; the pin is
+    // the city's center as the geocoder puts it.
+    youtubeId: "ubQyezKtxbo",
+    start: 2.14, end: 24.66,
+    lat: 34.2073, lng: -84.1402,
+    answer: "Cumming, Georgia, USA (approx.)"
   }
 ];
